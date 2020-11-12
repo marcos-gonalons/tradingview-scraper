@@ -42,7 +42,7 @@ tradingviewsocket.AddSymbol("BITSTAMP:BTCUSD")
 // etc etc
 ```
 The syntax for the symbol needs to be `broker or exchange name`:`market`.
-Everytime the socket received data from those markets, it will call your callback function.
+Everytime the socket receives new data from those markets, it will call your callback function.
 
 If you want to stop receiving updates from a particular market, just call RemoveSymbol()
 ```golang
