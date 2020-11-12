@@ -8,8 +8,6 @@ Inspired by https://github.com/imxeno/tradingview-scraper, I decided to create m
 Call the Connect() function passing 2 callback functions; one callback for when new market data is read from the socket, and another one used if an error happens while the connection is active.
 
 ```golang
-import tradingviewsocket "github.com/marcos-gonalons/tradingview-scraper"
-
 func main() {
 	tradingviewsocket, err := socket.Connect(
 		func(symbol string, data *socket.QuoteData) {
