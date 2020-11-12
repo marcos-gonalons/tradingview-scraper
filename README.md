@@ -32,8 +32,6 @@ func main() {
 }
 ```
 
-The callback function receives two parameters: the symbol (for example )
-
 
 ## How to add / remove symbols
 The implementation allows you to listen for any market data changes, in real time, for any market available in TradingView.
