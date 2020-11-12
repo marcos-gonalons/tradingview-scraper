@@ -8,19 +8,21 @@ Inspired by https://github.com/imxeno/tradingview-scraper, I decided to create m
 Call the Connect() function passing 2 callback functions; one callback for when new market data is read from the socket, and another one used if an error happens while the connection is active
 
 ```golang
+import socket "github.com/marcos-gonalons/tradingview-scraper"
+
 func main() {
-tradingviewsocket, err := socket.Connect(
-func(symbol string, data *socket.QuoteData) {
-fmt.Printf("%#v", symbol)
-fmt.Printf("%#v", data)
-},
-func(err error) {
-fmt.Printf("%#v", "error"+err.Error())
-},
-)
-if err != nil {
-panic("Error while initializing the trading view socket -> " + err.Error())
-}
+    tradingviewsocket, err := socket.Connect(
+        func(symbol string, data *socket.QuoteData) {
+            fmt.Printf("%#v", symbol)
+            fmt.Printf("%#v", data)
+        },
+        func(err error) {
+            fmt.Printf("%#v", "error"+err.Error())
+        },
+    )
+    if err != nil {
+        panic("Error while initializing the trading view socket -> " + err.Error())
+    }
 }
 ```
 
@@ -40,7 +42,7 @@ Everytime the socket received data from those markets, it will call your callbac
 
 If you want to stop receiving updates from a particular market, just call RemoveSymbol()
 ```golang
-tradingviewsocket.RemoveSymbol("OANDA:EURUSD")
+   tradingviewsocket.RemoveSymbol("OANDA:EURUSD")
 ```
 
 
@@ -49,20 +51,20 @@ The callback function has 2 parameters; the symbol (market) name, and the data.
 The data is a struct with these parameters: `Price`, `Volume`, `Bid`, `Ask`
 ```golang
 callbackFn := func(symbol string, data *socket.QuoteData) {
-fmt.Printf("%#v", symbol)
-fmt.Printf("%#v", data)
-if data.Price != nil {
-    fmt.Printf("%#v", "Price has changed")
-}
-if data.Volume != nil {
-    fmt.Printf("%#v", "Volume has changed")
-}
-if data.Bid != nil {
-    fmt.Printf("%#v", "Bid has changed")
-}
-if data.Ask != nil {
-    fmt.Printf("%#v", "Ask has changed")
-}
+    fmt.Printf("%#v", symbol)
+    fmt.Printf("%#v", data)
+    if data.Price != nil {
+        fmt.Printf("%#v", "Price has changed")
+    }
+    if data.Volume != nil {
+        fmt.Printf("%#v", "Volume has changed")
+    }
+    if data.Bid != nil {
+        fmt.Printf("%#v", "Bid has changed")
+    }
+    if data.Ask != nil {
+        fmt.Printf("%#v", "Ask has changed")
+    }
 }
 ```
 Everytime new data is received from the socket, it will call your callback function.
