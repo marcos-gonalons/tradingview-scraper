@@ -7,7 +7,7 @@ Inspired by https://github.com/imxeno/tradingview-scraper, I decided to create m
 #### How to use
 Call the Connect() function passing 2 callback functions; one callback for when new market data is read from the socket, and another one used if an error happens while the connection is active.
 
-```
+```golang
 import tradingviewsocket "github.com/marcos-gonalons/tradingview-scraper"
 
 func main() {
@@ -32,7 +32,7 @@ The callback function receives two parameters: the symbol (for example )
 ### How to add / remove symbols
 The implementation allows you to listen for any market data changes, in real time, for any market available in TradingView.
 In order to tell the socket the symbols (markets) that we want to get the data from, we need to call socket.AddSymbol(), after the connection is stablished.
-```
+```golang
     tradingviewsocket.AddSymbol("OANDA:EURUSD")
     tradingviewsocket.AddSymbol("BITSTAMP:BTCUSD")
     // etc etc
@@ -41,7 +41,7 @@ The syntax for the symbol needs to be `broker or exchange name`:`market`.
 Everytime the socket received data from those markets, it will call your callback function.
 
 If you want to stop receiving updates from a particular market, just call RemoveSymbol()
-```
+```golang
     tradingviewsocket.RemoveSymbol("OANDA:EURUSD")
 ```
 
@@ -49,7 +49,7 @@ If you want to stop receiving updates from a particular market, just call Remove
 ### Callback function
 The callback function has 2 parameters; the symbol (market) name, and the data.
 The data is a struct with these parameters: `Price`, `Volume`, `Bid`, `Ask`
-```
+```golang
     callbackFn := func(symbol string, data *socket.QuoteData) {
 		fmt.Printf("%#v", symbol)
 		fmt.Printf("%#v", data)
