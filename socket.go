@@ -10,12 +10,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// TradingviewSocket ...
-type TradingviewSocket struct {
+// Socket ...
+type Socket struct {
 	OnReceiveMarketDataCallback func(symbol string, data *QuoteData)
 	OnErrorCallback             func(error)
 
 	conn      *websocket.Conn
+	isClosed  bool
 	sessionID string
 }
 
@@ -24,7 +25,7 @@ func Connect(
 	onReceiveMarketDataCallback func(symbol string, data *QuoteData),
 	onErrorCallback func(error),
 ) (socket SocketInterface, err error) {
-	socket = &TradingviewSocket{
+	socket = &Socket{
 		OnReceiveMarketDataCallback: onReceiveMarketDataCallback,
 		OnErrorCallback:             onErrorCallback,
 	}
@@ -35,7 +36,8 @@ func Connect(
 }
 
 // Init connects to the tradingview web socket
-func (s *TradingviewSocket) Init() (err error) {
+func (s *Socket) Init() (err error) {
+	s.isClosed = true
 	s.conn, _, err = (&websocket.Dialer{}).Dial("wss://data.tradingview.com/socket.io/websocket", getHeaders())
 	if err != nil {
 		s.onError(err)
@@ -56,18 +58,20 @@ func (s *TradingviewSocket) Init() (err error) {
 		return
 	}
 
+	s.isClosed = false
 	go s.connectionLoop()
 
 	return
 }
 
 // Close ...
-func (s *TradingviewSocket) Close() (err error) {
+func (s *Socket) Close() (err error) {
+	s.isClosed = true
 	return s.conn.Close()
 }
 
 // AddSymbol ...
-func (s *TradingviewSocket) AddSymbol(symbol string) (err error) {
+func (s *Socket) AddSymbol(symbol string) (err error) {
 	err = s.sendSocketMessage(
 		getSocketMessage("quote_add_symbols", []interface{}{s.sessionID, symbol, getFlags()}),
 	)
@@ -75,14 +79,14 @@ func (s *TradingviewSocket) AddSymbol(symbol string) (err error) {
 }
 
 // RemoveSymbol ...
-func (s *TradingviewSocket) RemoveSymbol(symbol string) (err error) {
+func (s *Socket) RemoveSymbol(symbol string) (err error) {
 	err = s.sendSocketMessage(
 		getSocketMessage("quote_remove_symbols", []interface{}{s.sessionID, symbol}),
 	)
 	return
 }
 
-func (s *TradingviewSocket) checkFirstReceivedMessage() (err error) {
+func (s *Socket) checkFirstReceivedMessage() (err error) {
 	var msg []byte
 
 	_, msg, err = s.conn.ReadMessage()
@@ -107,11 +111,11 @@ func (s *TradingviewSocket) checkFirstReceivedMessage() (err error) {
 	return
 }
 
-func (s *TradingviewSocket) generateSessionID() {
+func (s *Socket) generateSessionID() {
 	s.sessionID = "qs_" + GetRandomString(12)
 }
 
-func (s *TradingviewSocket) sendConnectionSetupMessages() (err error) {
+func (s *Socket) sendConnectionSetupMessages() (err error) {
 	messages := []*SocketMessage{
 		getSocketMessage("set_auth_token", []string{"unauthorized_user_token"}),
 		getSocketMessage("quote_create_session", []string{s.sessionID}),
@@ -128,7 +132,7 @@ func (s *TradingviewSocket) sendConnectionSetupMessages() (err error) {
 	return
 }
 
-func (s *TradingviewSocket) sendSocketMessage(p *SocketMessage) (err error) {
+func (s *Socket) sendSocketMessage(p *SocketMessage) (err error) {
 	payload, _ := json.Marshal(p)
 	payloadWithHeader := "~m~" + strconv.Itoa(len(payload)) + "~m~" + string(payload)
 
@@ -140,10 +144,14 @@ func (s *TradingviewSocket) sendSocketMessage(p *SocketMessage) (err error) {
 	return
 }
 
-func (s *TradingviewSocket) connectionLoop() {
+func (s *Socket) connectionLoop() {
 	var readMsgError error
 
 	for readMsgError == nil {
+		if s.isClosed {
+			break
+		}
+
 		var msgType int
 		var msg []byte
 		msgType, msg, readMsgError = s.conn.ReadMessage()
@@ -164,10 +172,12 @@ func (s *TradingviewSocket) connectionLoop() {
 		s.parsePacket(msg)
 	}
 
-	s.onError(readMsgError)
+	if readMsgError != nil {
+		s.onError(readMsgError)
+	}
 }
 
-func (s *TradingviewSocket) parsePacket(packet []byte) {
+func (s *Socket) parsePacket(packet []byte) {
 	index := 0
 	for index < len(packet) {
 		payloadLength, err := getPayloadLength(packet[index:])
@@ -184,7 +194,7 @@ func (s *TradingviewSocket) parsePacket(packet []byte) {
 	}
 }
 
-func (s *TradingviewSocket) parseJSON(msg []byte) {
+func (s *Socket) parseJSON(msg []byte) {
 	var decodedMessage *SocketMessage
 	var err error
 
@@ -229,7 +239,7 @@ func (s *TradingviewSocket) parseJSON(msg []byte) {
 	s.OnReceiveMarketDataCallback(decodedQuoteMessage.Symbol, decodedQuoteMessage.Data)
 }
 
-func (s *TradingviewSocket) onError(err error) {
+func (s *Socket) onError(err error) {
 	if s.conn != nil {
 		s.conn.Close()
 	}
@@ -292,4 +302,3 @@ func getHeaders() http.Header {
 
 	return headers
 }
-
