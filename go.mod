@@ -1,4 +1,4 @@
-module github.com/marcos-gonalons/tradingview-scraper/v1
+module github.com/marcos-gonalons/tradingview-scraper
 
 go 1.16
 
