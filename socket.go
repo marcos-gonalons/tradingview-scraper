@@ -12,8 +12,8 @@ import (
 
 // Socket ...
 type Socket struct {
-	OnReceiveMarketDataCallback func(symbol string, data *QuoteData)
-	OnErrorCallback             func(error)
+	OnReceiveMarketDataCallback OnReceiveDataCallback
+	OnErrorCallback             OnErrorCallback
 
 	conn      *websocket.Conn
 	isClosed  bool
@@ -22,8 +22,8 @@ type Socket struct {
 
 // Connect - Connects and returns the trading view socket object
 func Connect(
-	onReceiveMarketDataCallback func(symbol string, data *QuoteData),
-	onErrorCallback func(error),
+	onReceiveMarketDataCallback OnReceiveDataCallback,
+	onErrorCallback OnErrorCallback,
 ) (socket SocketInterface, err error) {
 	socket = &Socket{
 		OnReceiveMarketDataCallback: onReceiveMarketDataCallback,
@@ -40,21 +40,19 @@ func (s *Socket) Init() (err error) {
 	s.isClosed = true
 	s.conn, _, err = (&websocket.Dialer{}).Dial("wss://data.tradingview.com/socket.io/websocket", getHeaders())
 	if err != nil {
-		s.onError(err)
+		s.onError(err, InitErrorContext)
 		return
 	}
 
 	err = s.checkFirstReceivedMessage()
 	if err != nil {
-		s.onError(err)
 		return
 	}
-
 	s.generateSessionID()
 
 	err = s.sendConnectionSetupMessages()
 	if err != nil {
-		s.onError(err)
+		s.onError(err, ConnectionSetupMessagesErrorContext)
 		return
 	}
 
@@ -91,7 +89,7 @@ func (s *Socket) checkFirstReceivedMessage() (err error) {
 
 	_, msg, err = s.conn.ReadMessage()
 	if err != nil {
-		s.onError(err)
+		s.onError(err, ReadFirstMessageErrorContext)
 		return
 	}
 
@@ -100,11 +98,13 @@ func (s *Socket) checkFirstReceivedMessage() (err error) {
 
 	err = json.Unmarshal(payload, &p)
 	if err != nil {
+		s.onError(err, DecodeFirstMessageErrorContext)
 		return
 	}
 
 	if p["session_id"] == nil {
 		err = errors.New("Cannot recognize the first received message after establishing the connection")
+		s.onError(err, FirstMessageWithoutSessionIdErrorContext)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (s *Socket) sendSocketMessage(p *SocketMessage) (err error) {
 
 	err = s.conn.WriteMessage(websocket.TextMessage, []byte(payloadWithHeader))
 	if err != nil {
-		s.onError(err)
+		s.onError(err, SendMessageErrorContext+" - "+payloadWithHeader)
 		return
 	}
 	return
@@ -163,7 +163,7 @@ func (s *Socket) connectionLoop() {
 		if isKeepAliveMsg(msg) {
 			err := s.conn.WriteMessage(msgType, msg)
 			if err != nil {
-				s.onError(err)
+				s.onError(err, SendKeepAliveMessageErrorContext+" - "+string(msg))
 				return
 			}
 			continue
@@ -173,7 +173,7 @@ func (s *Socket) connectionLoop() {
 	}
 
 	if readMsgError != nil {
-		s.onError(readMsgError)
+		s.onError(readMsgError, ReadMessageErrorContext)
 	}
 }
 
@@ -182,7 +182,7 @@ func (s *Socket) parsePacket(packet []byte) {
 	for index < len(packet) {
 		payloadLength, err := getPayloadLength(packet[index:])
 		if err != nil {
-			s.onError(err)
+			s.onError(err, GetPayloadLengthErrorContext+" - "+string(packet))
 			return
 		}
 
@@ -200,12 +200,12 @@ func (s *Socket) parseJSON(msg []byte) {
 
 	err = json.Unmarshal(msg, &decodedMessage)
 	if err != nil {
-		s.onError(err)
+		s.onError(err, DecodeMessageErrorContext+" - "+string(msg))
 		return
 	}
 
 	if decodedMessage.Message == "critical_error" || decodedMessage.Message == "error" {
-		s.onError(errors.New("Error -> " + string(msg)))
+		s.onError(errors.New("Error -> "+string(msg)), DecodedMessageHasErrorPropertyErrorContext)
 		return
 	}
 
@@ -214,36 +214,36 @@ func (s *Socket) parseJSON(msg []byte) {
 	}
 
 	if decodedMessage.Payload == nil {
-		s.onError(errors.New("Msg does not include 'p' -> " + string(msg)))
+		s.onError(errors.New("Msg does not include 'p' -> "+string(msg)), DecodedMessageDoesNotIncludePayloadErrorContext)
 		return
 	}
 
 	p, isPOk := decodedMessage.Payload.([]interface{})
 	if !isPOk || len(p) != 2 {
-		s.onError(errors.New("There is something wrong with the payload - can't be parsed -> " + string(msg)))
+		s.onError(errors.New("There is something wrong with the payload - can't be parsed -> "+string(msg)), PayloadCantBeParsedErrorContext)
 		return
 	}
 
 	var decodedQuoteMessage *QuoteMessage
 	err = mapstructure.Decode(p[1].(map[string]interface{}), &decodedQuoteMessage)
 	if err != nil {
-		s.onError(err)
+		s.onError(err, FinalPayloadCantBeParsedErrorContext+" - "+string(msg))
 		return
 	}
 
 	if decodedQuoteMessage.Status != "ok" || decodedQuoteMessage.Symbol == "" || decodedQuoteMessage.Data == nil {
-		s.onError(errors.New("There is something wrong with the payload - couldn't be parsed -> " + string(msg)))
+		s.onError(errors.New("There is something wrong with the payload - couldn't be parsed -> "+string(msg)), FinalPayloadHasMissingPropertiesErrorContext)
 		return
 	}
 
 	s.OnReceiveMarketDataCallback(decodedQuoteMessage.Symbol, decodedQuoteMessage.Data)
 }
 
-func (s *Socket) onError(err error) {
+func (s *Socket) onError(err error, context string) {
 	if s.conn != nil {
 		s.conn.Close()
 	}
-	s.OnErrorCallback(err)
+	s.OnErrorCallback(err, context)
 }
 
 func getSocketMessage(m string, p interface{}) *SocketMessage {
