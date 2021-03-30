@@ -197,9 +197,11 @@ func (s *Socket) parsePacket(packet []byte) {
 
 		symbol, data, err := s.parseJSON(payload)
 		if err != nil {
-			dataArr = append(dataArr, data)
-			symbolsArr = append(symbolsArr, symbol)
+			break
 		}
+
+		dataArr = append(dataArr, data)
+		symbolsArr = append(symbolsArr, symbol)
 	}
 
 	for i := 0; i < len(dataArr); i++ {
@@ -226,7 +228,8 @@ func (s *Socket) parseJSON(msg []byte) (symbol string, data *QuoteData, err erro
 	}
 
 	if decodedMessage.Message == "critical_error" || decodedMessage.Message == "error" {
-		s.onError(errors.New("Error -> "+string(msg)), DecodedMessageHasErrorPropertyErrorContext)
+		err = errors.New("Error -> " + string(msg))
+		s.onError(err, DecodedMessageHasErrorPropertyErrorContext)
 		return
 	}
 
@@ -236,13 +239,15 @@ func (s *Socket) parseJSON(msg []byte) (symbol string, data *QuoteData, err erro
 	}
 
 	if decodedMessage.Payload == nil {
-		s.onError(errors.New("Msg does not include 'p' -> "+string(msg)), DecodedMessageDoesNotIncludePayloadErrorContext)
+		err = errors.New("Msg does not include 'p' -> " + string(msg))
+		s.onError(err, DecodedMessageDoesNotIncludePayloadErrorContext)
 		return
 	}
 
 	p, isPOk := decodedMessage.Payload.([]interface{})
 	if !isPOk || len(p) != 2 {
-		s.onError(errors.New("There is something wrong with the payload - can't be parsed -> "+string(msg)), PayloadCantBeParsedErrorContext)
+		err = errors.New("There is something wrong with the payload - can't be parsed -> " + string(msg))
+		s.onError(err, PayloadCantBeParsedErrorContext)
 		return
 	}
 
@@ -254,11 +259,13 @@ func (s *Socket) parseJSON(msg []byte) (symbol string, data *QuoteData, err erro
 	}
 
 	if decodedQuoteMessage.Status != "ok" || decodedQuoteMessage.Symbol == "" || decodedQuoteMessage.Data == nil {
-		s.onError(errors.New("There is something wrong with the payload - couldn't be parsed -> "+string(msg)), FinalPayloadHasMissingPropertiesErrorContext)
+		err = errors.New("There is something wrong with the payload - couldn't be parsed -> " + string(msg))
+		s.onError(err, FinalPayloadHasMissingPropertiesErrorContext)
 		return
 	}
-
-	return decodedQuoteMessage.Symbol, decodedQuoteMessage.Data, nil
+	symbol = decodedQuoteMessage.Symbol
+	data = decodedQuoteMessage.Data
+	return
 }
 
 func (s *Socket) onError(err error, context string) {
