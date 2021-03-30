@@ -7,14 +7,14 @@ Inspired by https://github.com/imxeno/tradingview-scraper, I decided to create m
 
 ## Installation
 ```
-go get github.com/marcos-gonalons/tradingview-scraper
+go get github.com/marcos-gonalons/tradingview-scraper/v2
 ```
 
 ## How to use
 Call the Connect() function passing 2 callback functions; one callback for when new market data is read from the socket, and another one used if an error happens while the connection is active
 
 ```golang
-import socket "github.com/marcos-gonalons/tradingview-scraper"
+import socket "github.com/marcos-gonalons/tradingview-scraper/v2"
 
 func main() {
     tradingviewsocket, err := socket.Connect(
@@ -22,8 +22,9 @@ func main() {
             fmt.Printf("%#v", symbol)
             fmt.Printf("%#v", data)
         },
-        func(err error) {
-            fmt.Printf("%#v", "error"+err.Error())
+        func(err error, context string) {
+            fmt.Printf("%#v", "error -> "+err.Error())
+            fmt.Printf("%#v", "context -> "+context)
         },
     )
     if err != nil {
