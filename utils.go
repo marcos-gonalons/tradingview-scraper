@@ -1,6 +1,7 @@
 package tradingview
 
 import (
+	"encoding/json"
 	"math/rand"
 	"time"
 )
@@ -29,3 +30,8 @@ func GetRandomString(length int) string {
 	return string(requestID)
 }
 
+// GetStringRepresentation ...
+func GetStringRepresentation(data interface{}) string {
+	str, _ := json.Marshal(data)
+	return string(str)
+}
