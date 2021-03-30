@@ -34,3 +34,8 @@ type Flags struct {
 	Flags []string `json:"flags"`
 }
 
+// OnReceiveDataCallback ...
+type OnReceiveDataCallback func(symbol string, data *QuoteData)
+
+// OnErrorCallback ...
+type OnErrorCallback func(err error, context string)
