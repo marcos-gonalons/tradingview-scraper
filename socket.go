@@ -103,7 +103,7 @@ func (s *Socket) checkFirstReceivedMessage() (err error) {
 	}
 
 	if p["session_id"] == nil {
-		err = errors.New("Cannot recognize the first received message after establishing the connection")
+		err = errors.New("cannot recognize the first received message after establishing the connection")
 		s.onError(err, FirstMessageWithoutSessionIdErrorContext)
 		return
 	}
@@ -146,8 +146,9 @@ func (s *Socket) sendSocketMessage(p *SocketMessage) (err error) {
 
 func (s *Socket) connectionLoop() {
 	var readMsgError error
+	var writeKeepAliveMsgError error
 
-	for readMsgError == nil {
+	for readMsgError == nil && writeKeepAliveMsgError == nil {
 		if s.isClosed {
 			break
 		}
@@ -156,28 +157,32 @@ func (s *Socket) connectionLoop() {
 		var msg []byte
 		msgType, msg, readMsgError = s.conn.ReadMessage()
 
-		if msgType != websocket.TextMessage {
-			continue
-		}
-
-		if isKeepAliveMsg(msg) {
-			err := s.conn.WriteMessage(msgType, msg)
-			if err != nil {
-				s.onError(err, SendKeepAliveMessageErrorContext+" - "+string(msg))
+		go func() {
+			if msgType != websocket.TextMessage {
 				return
 			}
-			continue
-		}
 
-		s.parsePacket(msg)
+			if isKeepAliveMsg(msg) {
+				writeKeepAliveMsgError = s.conn.WriteMessage(msgType, msg)
+				return
+			}
+
+			go s.parsePacket(msg)
+		}()
 	}
 
 	if readMsgError != nil {
 		s.onError(readMsgError, ReadMessageErrorContext)
 	}
+	if writeKeepAliveMsgError != nil {
+		s.onError(writeKeepAliveMsgError, SendKeepAliveMessageErrorContext)
+	}
 }
 
 func (s *Socket) parsePacket(packet []byte) {
+	var symbolsArr []string
+	var dataArr []*QuoteData
+
 	index := 0
 	for index < len(packet) {
 		payloadLength, err := getPayloadLength(packet[index:])
@@ -190,13 +195,29 @@ func (s *Socket) parsePacket(packet []byte) {
 		payload := packet[index+headerLength : index+headerLength+payloadLength]
 		index = index + headerLength + len(payload)
 
-		s.parseJSON(payload)
+		symbol, data, err := s.parseJSON(payload)
+		if err != nil {
+			dataArr = append(dataArr, data)
+			symbolsArr = append(symbolsArr, symbol)
+		}
+	}
+
+	for i := 0; i < len(dataArr); i++ {
+		isDuplicate := false
+		for j := i + 1; j < len(dataArr); j++ {
+			if GetStringRepresentation(dataArr[i]) == GetStringRepresentation(dataArr[j]) {
+				isDuplicate = true
+				break
+			}
+		}
+		if !isDuplicate {
+			s.OnReceiveMarketDataCallback(symbolsArr[i], dataArr[i])
+		}
 	}
 }
 
-func (s *Socket) parseJSON(msg []byte) {
+func (s *Socket) parseJSON(msg []byte) (symbol string, data *QuoteData, err error) {
 	var decodedMessage *SocketMessage
-	var err error
 
 	err = json.Unmarshal(msg, &decodedMessage)
 	if err != nil {
@@ -210,6 +231,7 @@ func (s *Socket) parseJSON(msg []byte) {
 	}
 
 	if decodedMessage.Message != "qsd" {
+		err = errors.New("ignored message - Not QSD")
 		return
 	}
 
@@ -236,7 +258,7 @@ func (s *Socket) parseJSON(msg []byte) {
 		return
 	}
 
-	s.OnReceiveMarketDataCallback(decodedQuoteMessage.Symbol, decodedQuoteMessage.Data)
+	return decodedQuoteMessage.Symbol, decodedQuoteMessage.Data, nil
 }
 
 func (s *Socket) onError(err error, context string) {
