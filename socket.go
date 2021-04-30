@@ -157,7 +157,7 @@ func (s *Socket) connectionLoop() {
 		var msg []byte
 		msgType, msg, readMsgError = s.conn.ReadMessage()
 
-		go func() {
+		go func(msgType int, msg []byte) {
 			if msgType != websocket.TextMessage {
 				return
 			}
@@ -168,7 +168,7 @@ func (s *Socket) connectionLoop() {
 			}
 
 			go s.parsePacket(msg)
-		}()
+		}(msgType, msg)
 	}
 
 	if readMsgError != nil {
