@@ -77,7 +77,7 @@ This means that not always all the parameters will be available; sometimes, only
 
 ### Buy me a coffee?
 If you found this repository useful for your needs, please consider sending a donation :) I highly appreciate it
+- Paypal: https://www.paypal.com/paypalme/mgonalonscamps
 - Bitcoin: 3Ets7kos4fG4aiEmrBEmKKpKogPyJJsk9A
 - Ethereum: 0x4E73fcd8847bf456789b5D34Ed483C0474426271
-- ADA: addr1q8x0482rvp7wzjsladlfs89z5rg5pe4s8effvxan66ap8vnrl8psznmjw6cawc6qp89mp98fl4p63eknl8y545wdh4xqpjl08w 
-- USDC (ERC-20): 0xfe770Bdf12ecF2036695402F5Af9e646b8A316e3
+- ADA: addr1q8x0482rvp7wzjsladlfs89z5rg5pe4s8effvxan66ap8vnrl8psznmjw6cawc6qp89mp98fl4p63eknl8y545wdh4xqpjl08w
