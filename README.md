@@ -77,7 +77,12 @@ This means that not always all the parameters will be available; sometimes, only
 
 ### Buy me a coffee?
 If you found this repository useful for your needs, please consider sending a donation :) I highly appreciate it
-- Paypal: https://www.paypal.com/paypalme/mgonalonscamps
-- Bitcoin: 3Ets7kos4fG4aiEmrBEmKKpKogPyJJsk9A
-- Ethereum: 0x4E73fcd8847bf456789b5D34Ed483C0474426271
-- ADA: addr1q8x0482rvp7wzjsladlfs89z5rg5pe4s8effvxan66ap8vnrl8psznmjw6cawc6qp89mp98fl4p63eknl8y545wdh4xqpjl08w
+- Bitcoin: 33qUftxYZfSsinWsFRBGx29EawPPpqCnnu
+- Algorand: KKVNSSPLZVTSSNYNMDYAAFAJP2ELIQRBRIPDIQEYLKKDU6B5IKW4H4PTW4
+- ADA: addr1q8uuve52wjde69mwg5q6y8ghd24r4gtlrtlw93v7w9d34alrzr27g03klu862usxqsru794d03gzkk8n86ta34n85z0s55uund
+- Dogecoin: DLcJGsAmLC8cnGtsDhxvdJPi53geVXBeAS
+- ShibaInu: 0x5314f12a590b4662577af6e645b8ef44f8cf2497
+- Solana: AZDfsdFfESE8HJfD5neCCGHFY2F4hKcxJCHW3nyyH79J
+- Monero: 88g1yVAA6ot7maGyq4Vtz6RfdS3Dwm5VMMHqexH9FsNaR7yU3hi8GT5Sxr3A7YUyoNY5sEhwHRBpSHg9rFUTtuqUJoAbSxk
+
+Or paypal: https://www.paypal.com/paypalme/mgonalonscamps
